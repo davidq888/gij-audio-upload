@@ -3,46 +3,35 @@
 <head>
 <meta charset="utf-8">
 <title>GIJ Audio Upload</title>
-<!-- Modern Uploadcare Web Component -->
-<script type="module" src="https://unpkg.com/@uploadcare/file-uploader-element@latest"></script>
+<link
+rel="stylesheet"
+href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
+>
 <style>
-body {font-family: Arial, sans-serif;background:#fafaff;margin:0;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;}
+body {font-family: Arial, sans-serif; background: #fafaff; text-align:center; padding:3em;}
 h1 {color:#202053;}
-.file-url {color:#206640;font-weight:bold;margin: 16px 0 4px 0;overflow-wrap:anywhere;}
-.note{margin:10px 0 0 0;color:#888;font-size:13px;}
-.copy-button{background:#5636d8;padding:7px 15px;border:none;color:#fff;border-radius:5px;font-weight:bold;margin-top:8px;cursor:pointer;}
-.copy-button:hover{background:#6a41e0;}
 </style>
 </head>
 <body>
-<h1>Upload audio file (MP3, WAV, M4A)</h1>
-<file-uploader
-public-key="22e000cd283f7ecedb2e"
-multiple="false"
-accepts="audio/*"
-id="uploader"
-></file-uploader>
-<p class="note">Accepted formats: MP3, WAV, M4A. After uploading, copy the file URL for your transcript request.</p>
-<div class="file-url" id="fileUrl"></div>
-<button class="copy-button" style="display:none;" onclick="copyUrl()" id="copyBtn">Copy File URL</button>
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-const uploader = document.getElementById('uploader');
-const fileUrlDiv = document.getElementById('fileUrl');
-const copyBtn = document.getElementById('copyBtn');
-uploader.addEventListener('file-upload-success', function(event) {
-const url = event.detail.cdnUrl || (event.detail.file && event.detail.file.cdnUrl);
-if(url){
-fileUrlDiv.textContent = url;
-copyBtn.style.display = "inline-block";
-}
-});
-});
+<h1>Upload Audio File (MP3, WAV, M4A)</h1>
 
-function copyUrl() {
-var url = document.getElementById('fileUrl').textContent;
-navigator.clipboard.writeText(url);
-}
+<uc-config
+ctx-name="my-uploader"
+source-list="local, camera, facebook, gdrive"
+pubkey="2d337f1cae9ebe2ff0e5"
+accept="audio/*"
+></uc-config>
+
+<uc-file-uploader-regular
+ctx-name="my-uploader"
+class="uc-light"
+></uc-file-uploader-regular>
+
+<uc-upload-ctx-provider ctx-name="my-uploader"></uc-upload-ctx-provider>
+
+<script type="module">
+import * as UC from 'https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.js';
+UC.defineComponents(UC);
 </script>
 </body>
 </html>
