@@ -19,8 +19,7 @@
   <div class="result" id="result"></div>
   <div class="error" id="error"></div>
   <script>
-    const publicKey = '2d337f1cae9ebe2ff0e5'; // Your Uploadcare public key
-    const uploadEndpoint = 'https://uploadcare.com/base/';
+    const publicKey = '2d337f1cae9ebe2ff0e5';
     document.getElementById('uploadForm').addEventListener('submit', function(e){
       e.preventDefault();
       document.getElementById('result').textContent = '';
@@ -37,10 +36,13 @@
         method: 'POST',
         body: formData
       })
-      .then(response => response.json())
-      .then(data => {
+      .then(async response => {
+        let data = await response.json();
+        if (!response.ok) {
+          document.getElementById('error').textContent = 'Error: ' + (data.error ? data.error.content : JSON.stringify(data));
+          return;
+        }
         if(data && data.file){
-          // Now get the CDN file URL
           document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="https://ucarecdn.com/' + data.file + '/" target="_blank">https://ucarecdn.com/' + data.file + '/</a>';
         } else if(data && data.error){
           document.getElementById('error').textContent = 'Error: ' + data.error.content;
