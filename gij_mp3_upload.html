@@ -3,7 +3,6 @@
 <head>
   <meta charset="utf-8">
   <title>GIJ Audio Upload</title>
-  <!-- Use Uploadcare's CDN for CSS (optional, but recommended for style) -->
   <link
     rel="stylesheet"
     href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
@@ -18,4 +17,21 @@
 
   <uc-config
     ctx-name="my-uploader"
-    source-list="local, camera, facebook, gdrive
+    source-list="local, camera, facebook, gdrive"
+    pubkey="2d337f1cae9ebe2ff0e5"
+    accept="audio/*"
+  ></uc-config>
+
+  <uc-file-uploader-regular
+    ctx-name="my-uploader"
+    class="uc-light"
+  ></uc-file-uploader-regular>
+
+  <uc-upload-ctx-provider ctx-name="my-uploader"></uc-upload-ctx-provider>
+
+  <script type="module">
+    import * as UC from './uc-file-uploader-regular.min.js';
+    UC.defineComponents(UC);
+  </script>
+</body>
+</html>
