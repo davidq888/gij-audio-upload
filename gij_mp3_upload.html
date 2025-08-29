@@ -2,36 +2,56 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>GIJ Audio Upload</title>
-  <link
-    rel="stylesheet"
-    href="https://cdn.jsdelivr.net/npm/@uploadcare/file-uploader@1/web/uc-file-uploader-regular.min.css"
-  >
+  <title>GIJ Audio Upload – CSP SAFE</title>
   <style>
-    body {font-family: Arial, sans-serif; background: #fafaff; text-align:center; padding:3em;}
-    h1 {color:#202053;}
+    body { font-family: Arial, sans-serif; background: #fafaff; text-align:center; padding:3em;}
+    h1 { color:#202053; }
+    .result { margin-top: 2em; font-weight: bold; color: green; word-break: break-all;}
+    .error { margin-top: 2em; color: red;}
   </style>
 </head>
 <body>
   <h1>Upload Audio File (MP3, WAV, M4A)</h1>
+  <form id="uploadForm">
+    <input type="file" id="fileInput" name="file" accept="audio/*" required>
+    <button type="submit">Upload</button>
+  </form>
+  <div class="result" id="result"></div>
+  <div class="error" id="error"></div>
+  <script>
+    const publicKey = '2d337f1cae9ebe2ff0e5'; // Your Uploadcare public key
+    const uploadEndpoint = 'https://uploadcare.com/base/';
+    document.getElementById('uploadForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      document.getElementById('result').textContent = '';
+      document.getElementById('error').textContent = '';
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return;
 
-  <uc-config
-    ctx-name="my-uploader"
-    source-list="local, camera, facebook, gdrive"
-    pubkey="2d337f1cae9ebe2ff0e5"
-    accept="audio/*"
-  ></uc-config>
+      const formData = new FormData();
+      formData.append('UPLOADCARE_PUB_KEY', publicKey);
+      formData.append('UPLOADCARE_STORE', '1'); // Store permanently
+      formData.append('file', file);
 
-  <uc-file-uploader-regular
-    ctx-name="my-uploader"
-    class="uc-light"
-  ></uc-file-uploader-regular>
-
-  <uc-upload-ctx-provider ctx-name="my-uploader"></uc-upload-ctx-provider>
-
-  <script type="module">
-    import * as UC from './uc-file-uploader-regular.min.js';
-    UC.defineComponents(UC);
+      fetch('https://upload.uploadcare.com/base/', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if(data && data.file){
+          // Now get the CDN file URL
+          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="https://ucarecdn.com/' + data.file + '/" target="_blank">https://ucarecdn.com/' + data.file + '/</a>';
+        } else if(data && data.error){
+          document.getElementById('error').textContent = 'Error: ' + data.error.content;
+        } else {
+          document.getElementById('error').textContent = 'Unknown error. Try again.';
+        }
+      })
+      .catch(err => {
+        document.getElementById('error').textContent = 'Network or CORS error: ' + err;
+      });
+    });
   </script>
 </body>
 </html>
