@@ -29,10 +29,12 @@
       document.getElementById('transcription').style.display = 'none';
       const file = document.getElementById('fileInput').files[0];
       if (!file) return;
+
       const formData = new FormData();
       formData.append('UPLOADCARE_PUB_KEY', publicKey);
       formData.append('UPLOADCARE_STORE', '1'); // Store permanently
       formData.append('file', file);
+
       fetch('https://upload.uploadcare.com/base/', {
         method: 'POST',
         body: formData
@@ -45,36 +47,37 @@
         }
         if (data && data.file) {
           const audioURL = 'https://ucarecdn.com/' + data.file + '/';
-          // Show CDN URL and Transcribe button
-          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a><br><button id="transcribeBtn">Transcribe</button>';
-          document.getElementById('transcribeBtn').onclick = function() {
-            document.getElementById('result').innerHTML = 'Transcribing...<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-            fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                audio_file: audioURL,
-                language: 'nl'
-              })
+          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a><br>Transcribing...';
+          // NEW: Also show the raw audio URL for easy copy & debug
+          document.getElementById('result').innerHTML += '<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+          // Call Buildship for transcription
+          fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audio_file: audioURL,
+              language: 'nl'
             })
-            .then(res => res.json())
-            .then(transcribeData => {
-              if (transcribeData && transcribeData.output) {
-                document.getElementById('transcription').style.display = 'block';
-                document.getElementById('transcription').textContent = transcribeData.output;
-                document.getElementById('result').innerHTML = 'File uploaded and transcribed.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-              } else {
-                document.getElementById('transcription').style.display = 'block';
-                document.getElementById('transcription').textContent = 'Transcription failed or not received.';
-                document.getElementById('result').innerHTML = 'File uploaded. Transcription not received.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-              }
-            })
-            .catch(err => {
+          })
+          .then(res => res.json())
+          .then(transcribeData => {
+            if (transcribeData && transcribeData.output) {
               document.getElementById('transcription').style.display = 'block';
-              document.getElementById('transcription').textContent = '';
-              document.getElementById('error').textContent = 'Buildship Error: ' + err;
-            });
-          };
+              document.getElementById('transcription').textContent = transcribeData.output;
+              document.getElementById('result').innerHTML = 'File uploaded and transcribed.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+              // Still show the Audio URL for debug after transcribe
+              document.getElementById('result').innerHTML += '<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+            } else {
+              document.getElementById('transcription').style.display = 'block';
+              document.getElementById('transcription').textContent = 'Transcription failed or not received.';
+              document.getElementById('result').innerHTML = 'File uploaded. Transcription not received.<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+            }
+          })
+          .catch(err => {
+            document.getElementById('transcription').style.display = 'block';
+            document.getElementById('transcription').textContent = '';
+            document.getElementById('error').textContent = 'Buildship Error: ' + err;
+          });
         } else if (data && data.error) {
           document.getElementById('error').textContent = 'Error: ' + data.error.content;
         } else {
