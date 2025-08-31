@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <title>GIJ Audio Upload – CSP SAFE</title>
   <style>
-    body { font-family: Arial, sans-serif; background: #fafaff; text-align:center; padding:3em;}
-    h1 { color:#202053; }
-    .result { margin-top: 2em; font-weight: bold; color: green; word-break: break-all;}
-    .error { margin-top: 2em; color: red;}
+    body { font-family: Arial, sans-serif; background: #fafaff; text-align: center; padding: 3em; }
+    h1 { color: #202053; }
+    .result { margin-top: 2em; font-weight: bold; color: green; word-break: break-all; }
+    .error { margin-top: 2em; color: red; }
+    .transcription { margin-top: 2em; color: #222; font-size: 1.1em; background: #f5f5f5; border-radius: 6px; padding: 1em; display: none; }
   </style>
 </head>
 <body>
@@ -18,12 +19,14 @@
   </form>
   <div class="result" id="result"></div>
   <div class="error" id="error"></div>
+  <div class="transcription" id="transcription"></div>
   <script>
     const publicKey = '2d337f1cae9ebe2ff0e5';
     document.getElementById('uploadForm').addEventListener('submit', function(e){
       e.preventDefault();
       document.getElementById('result').textContent = '';
       document.getElementById('error').textContent = '';
+      document.getElementById('transcription').style.display = 'none';
       const file = document.getElementById('fileInput').files[0];
       if (!file) return;
 
@@ -42,9 +45,36 @@
           document.getElementById('error').textContent = 'Error: ' + (data.error ? data.error.content : JSON.stringify(data));
           return;
         }
-        if(data && data.file){
-          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="https://ucarecdn.com/' + data.file + '/" target="_blank">https://ucarecdn.com/' + data.file + '/</a>';
-        } else if(data && data.error){
+        if (data && data.file) {
+          const audioURL = 'https://ucarecdn.com/' + data.file + '/';
+          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a><br>Transcribing...';
+          // Call Buildship for transcription
+          fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audio_file: audioURL,
+              language: 'nl'
+            })
+          })
+          .then(res => res.json())
+          .then(transcribeData => {
+            if (transcribeData && transcribeData.output) {
+              document.getElementById('transcription').style.display = 'block';
+              document.getElementById('transcription').textContent = transcribeData.output;
+              document.getElementById('result').innerHTML = 'File uploaded and transcribed.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+            } else {
+              document.getElementById('transcription').style.display = 'block';
+              document.getElementById('transcription').textContent = 'Transcription failed or not received.';
+              document.getElementById('result').innerHTML = 'File uploaded. Transcription not received.';
+            }
+          })
+          .catch(err => {
+            document.getElementById('transcription').style.display = 'block';
+            document.getElementById('transcription').textContent = '';
+            document.getElementById('error').textContent = 'Buildship Error: ' + err;
+          });
+        } else if (data && data.error) {
           document.getElementById('error').textContent = 'Error: ' + data.error.content;
         } else {
           document.getElementById('error').textContent = 'Unknown error. Try again.';
