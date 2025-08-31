@@ -9,7 +9,6 @@
     .result { margin-top: 2em; font-weight: bold; color: green; word-break: break-all; }
     .error { margin-top: 2em; color: red; }
     .transcription { margin-top: 2em; color: #222; font-size: 1.1em; background: #f5f5f5; border-radius: 6px; padding: 1em; display: none; }
-    .audio-url { margin-top: 1em; color: #465fab; font-size: .98em; }
   </style>
 </head>
 <body>
@@ -19,7 +18,6 @@
     <button type="submit">Upload</button>
   </form>
   <div class="result" id="result"></div>
-  <div class="audio-url" id="audioUrl"></div>
   <div class="error" id="error"></div>
   <div class="transcription" id="transcription"></div>
   <script>
@@ -29,13 +27,12 @@
       document.getElementById('result').textContent = '';
       document.getElementById('error').textContent = '';
       document.getElementById('transcription').style.display = 'none';
-      document.getElementById('audioUrl').textContent = '';
       const file = document.getElementById('fileInput').files[0];
       if (!file) return;
 
       const formData = new FormData();
       formData.append('UPLOADCARE_PUB_KEY', publicKey);
-      formData.append('UPLOADCARE_STORE', '1');
+      formData.append('UPLOADCARE_STORE', '1'); // Store permanently
       formData.append('file', file);
 
       fetch('https://upload.uploadcare.com/base/', {
@@ -50,12 +47,43 @@
         }
         if (data && data.file) {
           const audioURL = 'https://ucarecdn.com/' + data.file + '/';
-          // SHOW THE AUDIO FILE URL FOR DEBUGGING:
-          document.getElementById('audioUrl').innerHTML = 'Audio File URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-          // ALERT for instant copy/paste/debug (optional):
-          // alert('Audio file URL: ' + audioURL);
-
-          document.getElementById('result').innerHTML = 'File uploaded!<br>Transcribing...';
-
+          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a><br>Transcribing...';
           // Call Buildship for transcription
-          fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber
+          fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              audio_file: audioURL,
+              language: 'nl'
+            })
+          })
+          .then(res => res.json())
+          .then(transcribeData => {
+            if (transcribeData && transcribeData.output) {
+              document.getElementById('transcription').style.display = 'block';
+              document.getElementById('transcription').textContent = transcribeData.output;
+              document.getElementById('result').innerHTML = 'File uploaded and transcribed.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+            } else {
+              document.getElementById('transcription').style.display = 'block';
+              document.getElementById('transcription').textContent = 'Transcription failed or not received.';
+              document.getElementById('result').innerHTML = 'File uploaded. Transcription not received.';
+            }
+          })
+          .catch(err => {
+            document.getElementById('transcription').style.display = 'block';
+            document.getElementById('transcription').textContent = '';
+            document.getElementById('error').textContent = 'Buildship Error: ' + err;
+          });
+        } else if (data && data.error) {
+          document.getElementById('error').textContent = 'Error: ' + data.error.content;
+        } else {
+          document.getElementById('error').textContent = 'Unknown error. Try again.';
+        }
+      })
+      .catch(err => {
+        document.getElementById('error').textContent = 'Network or CORS error: ' + err;
+      });
+    });
+  </script>
+</body>
+</html>
