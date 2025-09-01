@@ -9,6 +9,11 @@
     .result { margin-top: 2em; font-weight: bold; color: green; word-break: break-all; }
     .error { margin-top: 2em; color: red; }
     .transcription { margin-top: 2em; color: #222; font-size: 1.1em; background: #f5f5f5; border-radius: 6px; padding: 1em; display: none; }
+    #uploadProgressContainer { margin-top: 2em; }
+    @media (max-width: 600px) {
+      body { padding: 1em; }
+      h1 { font-size: 1.3em; }
+    }
   </style>
 </head>
 <body>
@@ -17,9 +22,19 @@
     <input type="file" id="fileInput" name="file" accept="audio/*" required>
     <button type="submit">Uploaden</button>
   </form>
+
+  <div id="uploadProgressContainer" style="display:none;">
+    <div style="width:80%;margin:1em auto;background:#e0e0e0;border-radius:6px;height:18px;overflow:hidden;">
+      <div id="uploadBar" style="width:0;height:100%;background:#4a90e2;transition:width 0.2s;"></div>
+    </div>
+    <div id="uploadLabel" style="color:#444;">Bezig met uploaden...</div>
+  </div>
+  <div id="transcribeIndicator" style="display:none;color:#444;">Transcriptie wordt gemaakt...</div>
+
   <div class="result" id="result"></div>
   <div class="error" id="error"></div>
   <div class="transcription" id="transcription"></div>
+
   <script>
     const publicKey = '2d337f1cae9ebe2ff0e5';
     document.getElementById('uploadForm').addEventListener('submit', function(e){
@@ -27,63 +42,79 @@
       document.getElementById('result').textContent = '';
       document.getElementById('error').textContent = '';
       document.getElementById('transcription').style.display = 'none';
+      document.getElementById('uploadProgressContainer').style.display = 'none';
+      document.getElementById('transcribeIndicator').style.display = 'none';
       const file = document.getElementById('fileInput').files[0];
       if (!file) return;
 
+      // Show progress bar at start
+      document.getElementById('uploadBar').style.width = '0';
+      document.getElementById('uploadLabel').textContent = 'Bezig met uploaden...';
+      document.getElementById('uploadProgressContainer').style.display = 'block';
+
       const formData = new FormData();
       formData.append('UPLOADCARE_PUB_KEY', publicKey);
-      formData.append('UPLOADCARE_STORE', '1'); // Bewaren op Uploadcare
+      formData.append('UPLOADCARE_STORE', '1');
       formData.append('file', file);
 
-      fetch('https://upload.uploadcare.com/base/', {
-        method: 'POST',
-        body: formData
-      })
-      .then(async response => {
-        let data = await response.json();
-        if (!response.ok) {
-          document.getElementById('error').textContent = 'Fout bij uploaden: ' + (data.error ? data.error.content : JSON.stringify(data));
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', 'https://upload.uploadcare.com/base/', true);
+
+      xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          document.getElementById('uploadBar').style.width = percent + '%';
+          document.getElementById('uploadLabel').textContent = 'Uploaden: ' + percent + '%';
+        }
+      };
+
+      xhr.onload = function(){
+        document.getElementById('uploadProgressContainer').style.display = 'none';
+        // Parse response and handle errors
+        let data;
+        try { data = JSON.parse(xhr.responseText); } catch (err) {}
+        if (xhr.status !== 200 || !data || (!data.file && data.error)) {
+          document.getElementById('error').textContent = 'Fout bij uploaden: ' + (data && data.error ? data.error.content : xhr.status);
           return;
         }
-        if (data && data.file) {
-          // Audio URL niet meer tonen
-          document.getElementById('result').textContent = 'Bestand geüpload! Transcriptie wordt gemaakt...';
-          // Call Buildship voor transcriptie
-          const audioURL = 'https://ucarecdn.com/' + data.file + '/';
-          fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              audio_file: audioURL,
-              language: 'nl'
-            })
+        document.getElementById('result').textContent = 'Bestand geüpload!';
+        // Show transcription-in-progress indicator (Dutch)
+        document.getElementById('transcribeIndicator').style.display = 'block';
+
+        const audioURL = 'https://ucarecdn.com/' + data.file + '/';
+        fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audio_file: audioURL,
+            language: 'nl'
           })
-          .then(res => res.json())
-          .then(transcribeData => {
-            if (transcribeData && transcribeData.output) {
-              document.getElementById('transcription').style.display = 'block';
-              document.getElementById('transcription').textContent = transcribeData.output;
-              document.getElementById('result').textContent = 'Bestand geüpload en getranscribeerd.';
-            } else {
-              document.getElementById('transcription').style.display = 'block';
-              document.getElementById('transcription').textContent = 'Transcriptie mislukt of niet ontvangen.';
-              document.getElementById('result').textContent = 'Bestand geüpload. Geen transcriptie ontvangen.';
-            }
-          })
-          .catch(err => {
+        })
+        .then(res => res.json())
+        .then(transcribeData => {
+          document.getElementById('transcribeIndicator').style.display = 'none';
+          if (transcribeData && transcribeData.output) {
             document.getElementById('transcription').style.display = 'block';
-            document.getElementById('transcription').textContent = '';
-            document.getElementById('error').textContent = 'Buildship fout: ' + err;
-          });
-        } else if (data && data.error) {
-          document.getElementById('error').textContent = 'Fout: ' + data.error.content;
-        } else {
-          document.getElementById('error').textContent = 'Onbekende fout. Probeer opnieuw.';
-        }
-      })
-      .catch(err => {
-        document.getElementById('error').textContent = 'Netwerk- of CORS-fout: ' + err;
-      });
+            document.getElementById('transcription').textContent = transcribeData.output;
+            document.getElementById('result').textContent = 'Bestand geüpload en getranscribeerd.';
+          } else {
+            document.getElementById('transcription').style.display = 'block';
+            document.getElementById('transcription').textContent = 'Transcriptie mislukt of niet ontvangen.';
+            document.getElementById('result').textContent = 'Bestand geüpload. Geen transcriptie ontvangen.';
+          }
+        })
+        .catch(err => {
+          document.getElementById('transcribeIndicator').style.display = 'none';
+          document.getElementById('transcription').style.display = 'block';
+          document.getElementById('transcription').textContent = '';
+          document.getElementById('error').textContent = 'Fout bij transcriptie: ' + err;
+        });
+      };
+      xhr.onerror = function(){
+        document.getElementById('uploadProgressContainer').style.display = 'none';
+        document.getElementById('error').textContent = 'Netwerkfout tijdens uploaden.';
+      };
+      xhr.send(formData);
     });
   </script>
 </body>
