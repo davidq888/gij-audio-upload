@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
   <meta charset="utf-8">
   <title>GIJ Audio Upload – CSP SAFE</title>
@@ -12,10 +12,10 @@
   </style>
 </head>
 <body>
-  <h1>Upload Audio File (MP3, WAV, M4A)</h1>
+  <h1>Upload audiobestand (MP3, WAV, M4A)</h1>
   <form id="uploadForm">
     <input type="file" id="fileInput" name="file" accept="audio/*" required>
-    <button type="submit">Upload</button>
+    <button type="submit">Uploaden</button>
   </form>
   <div class="result" id="result"></div>
   <div class="error" id="error"></div>
@@ -32,7 +32,7 @@
 
       const formData = new FormData();
       formData.append('UPLOADCARE_PUB_KEY', publicKey);
-      formData.append('UPLOADCARE_STORE', '1'); // Store permanently
+      formData.append('UPLOADCARE_STORE', '1'); // Bewaren op Uploadcare
       formData.append('file', file);
 
       fetch('https://upload.uploadcare.com/base/', {
@@ -42,15 +42,14 @@
       .then(async response => {
         let data = await response.json();
         if (!response.ok) {
-          document.getElementById('error').textContent = 'Error: ' + (data.error ? data.error.content : JSON.stringify(data));
+          document.getElementById('error').textContent = 'Fout bij uploaden: ' + (data.error ? data.error.content : JSON.stringify(data));
           return;
         }
         if (data && data.file) {
+          // Audio URL niet meer tonen
+          document.getElementById('result').textContent = 'Bestand geüpload! Transcriptie wordt gemaakt...';
+          // Call Buildship voor transcriptie
           const audioURL = 'https://ucarecdn.com/' + data.file + '/';
-          document.getElementById('result').innerHTML = 'File uploaded!<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a><br>Transcribing...';
-          // NEW: Also show the raw audio URL for easy copy & debug
-          document.getElementById('result').innerHTML += '<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-          // Call Buildship for transcription
           fetch('https://lmtu8g.buildship.run/dutchAudioTranscriber-6891fe1d594e', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -64,28 +63,26 @@
             if (transcribeData && transcribeData.output) {
               document.getElementById('transcription').style.display = 'block';
               document.getElementById('transcription').textContent = transcribeData.output;
-              document.getElementById('result').innerHTML = 'File uploaded and transcribed.<br>CDN URL: <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
-              // Still show the Audio URL for debug after transcribe
-              document.getElementById('result').innerHTML += '<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+              document.getElementById('result').textContent = 'Bestand geüpload en getranscribeerd.';
             } else {
               document.getElementById('transcription').style.display = 'block';
-              document.getElementById('transcription').textContent = 'Transcription failed or not received.';
-              document.getElementById('result').innerHTML = 'File uploaded. Transcription not received.<br><strong>Audio URL:</strong> <a href="' + audioURL + '" target="_blank">' + audioURL + '</a>';
+              document.getElementById('transcription').textContent = 'Transcriptie mislukt of niet ontvangen.';
+              document.getElementById('result').textContent = 'Bestand geüpload. Geen transcriptie ontvangen.';
             }
           })
           .catch(err => {
             document.getElementById('transcription').style.display = 'block';
             document.getElementById('transcription').textContent = '';
-            document.getElementById('error').textContent = 'Buildship Error: ' + err;
+            document.getElementById('error').textContent = 'Buildship fout: ' + err;
           });
         } else if (data && data.error) {
-          document.getElementById('error').textContent = 'Error: ' + data.error.content;
+          document.getElementById('error').textContent = 'Fout: ' + data.error.content;
         } else {
-          document.getElementById('error').textContent = 'Unknown error. Try again.';
+          document.getElementById('error').textContent = 'Onbekende fout. Probeer opnieuw.';
         }
       })
       .catch(err => {
-        document.getElementById('error').textContent = 'Network or CORS error: ' + err;
+        document.getElementById('error').textContent = 'Netwerk- of CORS-fout: ' + err;
       });
     });
   </script>
