@@ -49,39 +49,31 @@
     #uploadForm {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 14px;
     }
-    #fileInput::-webkit-file-upload-button {
-      visibility: hidden;
-    }
-    #fileInput::before {
-      content: 'Bestand kiezen';
+    .file-btn {
       display: inline-block;
       background: #fff;
       border: 2px solid #aaa;
       border-radius: 8px;
       padding: 10px 18px;
-      outline: none;
-      white-space: nowrap;
-      -webkit-user-select: none;
       cursor: pointer;
       font-weight: 500;
       color: #373A49;
-      margin-right: 12px;
-      transition: border 0.2s;
+      margin-right: 3px;
+      transition: border 0.2s, color 0.2s;
     }
-    #fileInput:hover::before {
-      border-color: #4a90e2;
-    }
-    #fileInput:active::before {
-      border-color: #4a90e2;
+    .file-btn:hover { border-color: #4a90e2; color: #4a90e2; }
+    #fileName {
+      color: #636C79;
+      font-size: 1rem;
+      font-style: italic;
+      margin-left: 2px;
+      min-width: 60px;
+      text-align: left;
     }
     #fileInput {
-      opacity: 0;
-      position: absolute;
-      z-index: -1;
-      width: 0.1px;
-      height: 0.1px;
+      display: none;
     }
     .upload-btn {
       background: #4a3aff;
@@ -170,6 +162,8 @@
     <div class="upload-area">
       <form id="uploadForm">
         <input type="file" id="fileInput" name="file" accept="audio/*" required>
+        <label for="fileInput" class="file-btn" id="fileLabel">Bestand kiezen</label>
+        <span id="fileName"></span>
         <button type="submit" class="upload-btn">Upload</button>
       </form>
     </div>
@@ -183,6 +177,12 @@
     <div class="transcription" id="transcription"></div>
   </div>
   <script>
+    // Show the filename after choosing
+    document.getElementById('fileInput').addEventListener('change', function(e){
+      const fileName = e.target.files.length ? e.target.files[0].name : '';
+      document.getElementById('fileName').textContent = fileName;
+    });
+
     const publicKey = '2d337f1cae9ebe2ff0e5';
     document.getElementById('uploadForm').addEventListener('submit', function(e){
       e.preventDefault();
